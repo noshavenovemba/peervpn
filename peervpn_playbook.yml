@@ -3,28 +3,90 @@
 - name: peervpn install
   hosts: all 
   gather_facts: no
+  become: yes
+  vars:
+    - folders:
+        - /home/ubuntu/peervpn_1.0-1_amd64/
+        - /home/ubuntu/peervpn_1.0-1_amd64/usr/local/bin
+        - /home/ubuntu/peervpn_1.0-1_amd64/DEBIAN
+        - /var/www/html/debs/amd64
   tasks:
 
-     - name: peervpn compilation
-       script: /Users/vmorozov/Desktop/peervpn1.1/peervpn_compilation.sh
+    - name: Add specified repository into sources list
+      apt_repository:
+        repo: deb [trusted=yes] http://security.ubuntu.com/ubuntu bionic-security main
+        state: present
 
-     - name: peervpn deb package preconf
-       script: /Users/vmorozov/Desktop/peervpn1.1/peervpn_package.sh
+    - name: Update repositories cache and install needed packages
+      apt:
+        name: 
+          - make
+          - gcc
+          - libssl1.0-dev 
+          - zlib1g-dev 
+          - libssl1.0-dev
+          - apache2 
+          - dpkg-dev
+        update_cache: yes
 
-     - name: copy control file
-       become: true 
-       copy:
-         src: /Users/vmorozov/Desktop/peervpn1.1/control
-         dest: /home/ubuntu/peervpn_1.0-1_amd64/DEBIAN/control
-         owner: ubuntu
-         group: ubuntu        
-         mode: 0644
+    - name: Clone a github repository
+      git:
+        repo: https://github.com/peervpn/peervpn
+        dest: /home/ubuntu/peervpn
+        clone: yes
+        update: yes
 
-     - name: build and put to local repo configuration
-       script: /Users/vmorozov/Desktop/peervpn1.1/local_repo.sh
+    - name: Build peervpn
+      make:
+        chdir: /home/ubuntu/peervpn
 
-     - name: install peervpn package from local repo
-       become: true
-       apt:
+    - name: Make peervpn executable
+      file: dest=/home/ubuntu/peervpn/peervpn mode=a+x
+
+    - name: Create directories if they don't exist
+      file:
+        path: "{{ folders }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: 0775
+        #with_items:
+           #- '/home/ubuntu/peervpn_1.0-1_amd64/'
+           #- '/home/ubuntu/peervpn_1.0-1_amd64/usr/local/bin'
+           #- '/home/ubuntu/peervpn_1.0-1_amd64/DEBIAN'
+
+    - name: Copy executable file
+      copy:
+        src: /home/ubuntu/peervpn/peervpn
+        dest: /home/ubuntu/peervpn_1.0-1_amd64/usr/local/bin 
+        remote_src: true
+
+    - name: Copy control file
+      copy:
+        src: /Users/vmorozov/Desktop/peervpn1.1/control
+        dest: /home/ubuntu/peervpn_1.0-1_amd64/DEBIAN/control      
+        mode: 0644
+
+    - name: Build debian package
+      shell: sudo dpkg-deb --build --root-owner-group /home/ubuntu/peervpn_1.0-1_amd64
+        
+    - name: Copy package to the local repository
+      copy:
+        src: /home/ubuntu/peervpn_1.0-1_amd64.deb
+        dest: /var/www/html/debs/amd64/peervpn_1.0-1_amd64.deb
+        remote_src: true
+
+    - name: Make repository
+      shell: dpkg-scanpackages amd64 | gzip -9c > amd64/Packages.gz 
+      args:
+         chdir: /var/www/html/debs/
+
+    - name: Add specified repository into sources list
+      apt_repository:
+        repo: deb [trusted=yes] http://127.0.0.1/debs amd64/
+        state: present
+
+    - name: Install peervpn package from local repo
+      apt:
          name: peervpn
          state: present

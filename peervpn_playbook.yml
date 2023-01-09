@@ -1,0 +1,30 @@
+---
+
+- name: peervpn install
+  hosts: all 
+  gather_facts: no
+  tasks:
+
+     - name: peervpn compilation
+       script: /Users/vmorozov/Desktop/peervpn1.1/peervpn_compilation.sh
+
+     - name: peervpn deb package preconf
+       script: /Users/vmorozov/Desktop/peervpn1.1/peervpn_package.sh
+
+     - name: copy control file
+       become: true 
+       copy:
+         src: /Users/vmorozov/Desktop/peervpn1.1/control
+         dest: /home/ubuntu/peervpn_1.0-1_amd64/DEBIAN/control
+         owner: ubuntu
+         group: ubuntu        
+         mode: 0644
+
+     - name: build and put to local repo configuration
+       script: /Users/vmorozov/Desktop/peervpn1.1/local_repo.sh
+
+     - name: install peervpn package from local repo
+       become: true
+       apt:
+         name: peervpn
+         state: present

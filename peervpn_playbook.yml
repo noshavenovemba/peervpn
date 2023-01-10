@@ -2,6 +2,7 @@
 
 - name: peervpn install
   hosts: all 
+  remote_user: ubuntu
   gather_facts: no
   become: yes
   tasks:

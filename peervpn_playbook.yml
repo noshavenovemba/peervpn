@@ -1,9 +1,8 @@
 ---
 
 - name: peervpn install
-  hosts: all
+  hosts: all 
   gather_facts: no
-  remote_user: ubuntu
   become: yes
   tasks:
 
@@ -14,7 +13,7 @@
 
     - name: Update repositories cache and install needed packages
       apt:
-        name: 
+        name:
           - make
           - gcc
           - libssl1.0-dev 
@@ -31,7 +30,7 @@
         clone: yes
         update: yes
 
-    - name: Compilation of peervpn from sources
+    - name: Build peervpn
       make:
         chdir: ~/peervpn
 
@@ -46,22 +45,21 @@
         group: ubuntu
         mode: 0775
       loop:
-        - ~/peervpn_1.0-1_amd64/
         - ~/peervpn_1.0-1_amd64/usr/local/bin
         - ~/peervpn_1.0-1_amd64/DEBIAN
         - /var/www/html/debs/amd64
 
-    - name: Copy executable peervpn file
+    - name: Copy control and peervpn
       copy:
-        src: ~/peervpn/peervpn
-        dest: ~/peervpn_1.0-1_amd64/usr/local/bin 
-        remote_src: true
-
-    - name: Copy control file from local PC
-      copy:
-        src: "{{ control }}"
-        dest: ~/peervpn_1.0-1_amd64/DEBIAN/control      
-        mode: 0644
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+        remote_src: "{{ item.remote_src }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+      with_items:
+        - { src: '~/peervpn/peervpn', dest: '~/peervpn_1.0-1_amd64/usr/local/bin', mode: '0644', remote_src: 'true', owner: 'root', group: 'root'}
+        - { src: '{{ control }}', dest: '~/peervpn_1.0-1_amd64/DEBIAN/control', mode: '0644', remote_src: 'false', owner: 'ubuntu', group: 'ubuntu'}
 
     - name: Build debian package
       shell: sudo dpkg-deb --build --root-owner-group ~/peervpn_1.0-1_amd64
@@ -80,9 +78,9 @@
     - name: Add local repository into sources list
       apt_repository:
         repo: deb [trusted=yes] http://127.0.0.1/debs amd64/
-        state: present     
+        state: present
 
-    - name: Install peervpn package from local repo
+    - name: install peervpn package from local repo
       apt:
          name: peervpn
          state: present

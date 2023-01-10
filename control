@@ -1,0 +1,5 @@
+Package: peervpn 
+Version: 1.0 
+Architecture: amd64 
+Maintainer: vmorozov <vmorozov.info@gmail.com>
+Description: peervpn deb package

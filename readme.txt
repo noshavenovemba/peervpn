@@ -1,8 +1,5 @@
 Compilation and installation of deb package from the sources
 
-Need to execute peervpn_playbook.yml with your own private-key value and hosts file
-ansible-playbook -i hosts peervpn_playbook.yml --user ubuntu --private-key=peervpntest.pem
-
-Need to be fixed
-1 replace home directory with tilde
-2 probably need to combine package structure with building
+Execution with default ubuntu user. If other needed key -u may be used.
+ansible-playbook -i hosts peervpn_playbook.yml --private-key=YOUR_OWN_PRIVATE_KEY \
+-e "control=/path_to_your_controlfile/control"
